@@ -1,1 +1,9 @@
 senderpassword.txt
+*.swp
+*.bak
+__pycache__/
+*.pyc
+freezer_alarm.log
+freezer_reset.log
+prompts.md
+lessons.md
