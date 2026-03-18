@@ -1,6 +1,7 @@
 import os
 import glob
 import time
+import socket
 import smtplib
 import json
 import datetime
@@ -19,6 +20,8 @@ MAX_CRC_RETRIES = 10
 DIGEST_HOUR = 21
 HISTORY_SIZE = 10000
 SENSOR_BASE = '/sys/bus/w1/devices/'
+NETWORK_WAIT_INTERVAL = 10
+NETWORK_MAX_RETRIES = 30  # 5 minutes of retries at boot
 
 logging.basicConfig(
     filename=CONFIG_DIR + 'freezer_alarm.log',
@@ -146,8 +149,23 @@ def save_history(temperaturelist, timelist):
         logging.error('Failed to save history: %s', e)
 
 
+def wait_for_network():
+    """Block until DNS resolution works, so emails don't fail at boot."""
+    for attempt in range(NETWORK_MAX_RETRIES):
+        try:
+            socket.getaddrinfo(SMTP_HOST, SMTP_PORT)
+            logging.info('Network is up')
+            return
+        except socket.gaierror:
+            logging.info('Waiting for network (attempt %d)...', attempt + 1)
+            time.sleep(NETWORK_WAIT_INTERVAL)
+    logging.warning('Network not available after %d attempts, continuing anyway',
+                    NETWORK_MAX_RETRIES)
+
+
 def main():
     logging.info('Freezer alarm starting')
+    wait_for_network()
 
     # Find sensor (retry with alerts on failure)
     device_file = None
