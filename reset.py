@@ -15,12 +15,10 @@ try:
         senders = json.load(f)
     with open(CONFIG_DIR + 'senderpassword.txt', 'r') as f:
         password = json.load(f)
-    server = smtplib.SMTP('smtp.sendgrid.net', 587)
-    try:
-        server.starttls()
-        server.login(senders[0], password[0])
-    finally:
-        server.quit()
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(senders[0], password[0])
+    server.quit()
     logging.info('SMTP connectivity check passed')
 except Exception as e:
     logging.error('SMTP connectivity check failed: %s', e)

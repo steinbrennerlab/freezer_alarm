@@ -11,9 +11,9 @@ import traceback
 # --- Configuration ---
 CONFIG_DIR = '/home/pi/'
 ADMIN_EMAIL = 'adam.steinbrenner@gmail.com'
-SMTP_HOST = 'smtp.sendgrid.net'
+SMTP_HOST = 'smtp.gmail.com'
 SMTP_PORT = 587
-SENDER_FROM = 'steinbrennerlabfreezer@proton.me'
+SENDER_FROM = 'adam.steinbrenner@gmail.com'
 POLL_INTERVAL = 60
 ALARM_COOLDOWN = 300
 MAX_CRC_RETRIES = 10
