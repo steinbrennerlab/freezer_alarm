@@ -70,13 +70,11 @@ def send_email(subject, body, recipients):
         password = config['password'][0]
         msg = 'From: {}\nSubject: {}\n\n{}'.format(SENDER_FROM, subject, body)
         server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        try:
-            server.starttls()
-            server.login(sender, password)
-            for recipient in recipients:
-                server.sendmail(sender, recipient, msg)
-        finally:
-            server.quit()
+        server.starttls()
+        server.login(sender, password)
+        for recipient in recipients:
+            server.sendmail(sender, recipient, msg)
+        server.quit()
         logging.info('Email sent: %s to %s', subject, recipients)
         return True
     except Exception as e:
