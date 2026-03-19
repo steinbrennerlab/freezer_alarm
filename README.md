@@ -10,7 +10,7 @@ Originally developed by the [Alonso-Stepanova Lab](https://github.com/Alonso-Ste
 - **DS18B20 temperature sensor** (waterproof probe version recommended for freezers)
 - **4.7k ohm resistor** (pulls the data line high -- the sensor won't work without it)
 - **Jumper wires** to connect the sensor to the Pi
-- **A SendGrid account** (free tier is fine) for sending emails
+- **A Gmail account** with an App Password for sending emails
 - **Python 3** (pre-installed on most Raspberry Pi OS images)
 
 ## Step 1: Wire the sensor
@@ -60,12 +60,15 @@ You should see output like:
 
 If you don't see the `28-` folder, check your wiring and make sure 1-Wire is enabled.
 
-## Step 4: Set up SendGrid
+## Step 4: Set up Gmail App Password
 
-1. Create a free account at [sendgrid.com](https://sendgrid.com)
-2. Go to **Settings** -> **API Keys** -> **Create API Key**
-3. Give it a name (e.g., "freezer alarm") and select **Full Access**
-4. Copy the API key (starts with `SG.`) -- you'll only see it once
+The alarm sends emails through Gmail's SMTP server. You'll need to create an "App Password" so the Pi can log in without your real password.
+
+1. Go to [myaccount.google.com](https://myaccount.google.com) and sign in
+2. Go to **Security** -> **2-Step Verification** (enable it if you haven't already)
+3. At the bottom of the 2-Step Verification page, click **App passwords**
+4. Name it "Freezer Alarm" and click **Create**
+5. Copy the 16-character password (e.g., `abcd efgh ijkl mnop`) -- you'll only see it once
 
 ## Step 5: Copy files to the Pi
 
@@ -81,14 +84,14 @@ cp freezer_alarm/*.py freezer_alarm/*.sh freezer_alarm/*.txt /home/pi/
 
 Edit these files in `/home/pi/`. Each file is a single line of JSON.
 
-**`senderpassword.txt`** -- Your SendGrid API key:
+**`senderpassword.txt`** -- Your Gmail App Password from Step 4:
 ```
-["SG.paste_your_full_api_key_here"]
+["abcd efgh ijkl mnop"]
 ```
 
-**`senders.txt`** -- The SMTP username (always `"apikey"` for SendGrid):
+**`senders.txt`** -- The Gmail address that sends the alerts:
 ```
-["apikey"]
+["yourlab@gmail.com"]
 ```
 
 **`recipients.txt`** -- Email addresses that receive alerts (one array, comma-separated):
@@ -159,7 +162,7 @@ You should see log lines like:
 | Reads sensor | Every 60 seconds |
 | Temperature alarm | Emails all recipients if temp goes above the high threshold or below the low threshold. 5-minute cooldown between alerts so you don't get flooded. |
 | Daily digest | Sends a status email at 9 PM to the first recipient, so you know the system is alive |
-| Sensor failure | If the sensor fails 3 reads in a row, emails the admin (adam.steinbrenner@gmail.com) |
+| Sensor failure | If the sensor fails 3 reads in a row, emails the admin (set `ADMIN_EMAIL` in `temperaturev7.py`) |
 | Connectivity check | `reset.py` runs at 8 AM and 8 PM via cron to verify the email connection still works |
 | Logging | All activity is logged to `/home/pi/freezer_alarm.log` |
 
@@ -189,9 +192,9 @@ You should see log lines like:
 
 **Not getting emails**
 - Check `/home/pi/freezer_alarm.log` for SMTP errors
-- Verify your SendGrid API key is correct in `senderpassword.txt`
-- Check that the `senders.txt` file contains `["apikey"]`
-- Make sure the "From" address is verified in your SendGrid account
+- Verify your Gmail App Password is correct in `senderpassword.txt`
+- Check that `senders.txt` contains your Gmail address
+- Make sure 2-Step Verification is enabled on the Gmail account
 
 **Script not running after reboot**
 - Check crontab: `sudo crontab -l`
