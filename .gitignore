@@ -5,5 +5,7 @@ __pycache__/
 *.pyc
 freezer_alarm.log
 freezer_reset.log
+temperaturelist.txt
+timelist.txt
 prompts.md
 lessons.md
