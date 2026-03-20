@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''temperaturev7.py''\\).read\\(\\)\\); print\\(''temperaturev7.py: OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''reset.py''\\).read\\(\\)\\); print\\(''reset.py: OK''\\)\")",
+      "Bash(bash -n /c/Users/adams/Dropbox/00_UCSD/UW/projects/2025_raspberryPiAlarm/freezer_alarm/launcher.sh)",
+      "Bash(ls:*)",
+      "Bash(python -m py_compile temperaturev7.py)"
+    ]
+  }
+}

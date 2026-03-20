@@ -18,6 +18,8 @@ POLL_INTERVAL = 60
 ALARM_COOLDOWN = 300
 MAX_CRC_RETRIES = 10
 DIGEST_HOUR = 21
+MONTHLY_DAY = 1
+MONTHLY_HOUR = 9
 HISTORY_SIZE = 10000
 SENSOR_BASE = '/sys/bus/w1/devices/'
 NETWORK_WAIT_INTERVAL = 10
@@ -80,6 +82,77 @@ def send_email(subject, body, recipients):
     except Exception as e:
         logging.error('Failed to send email: %s', e)
         return False
+
+
+PLANT_AND_CATERPILLAR_ART = r"""
+        _
+       | |
+   ____| |__
+  /  ___    \     0 0 0 0
+  | |   |   |    \|/|/|/|/
+  | |   |   |     ^ ^ ^ ^
+  | |___|   |    _/|_/|_/|_
+  \________/    (___________) <-- caterpillar
+     |  |
+     |  |        ,---. ,---.
+    _|  |_      ( o  o  o  o )
+   (_    _)      \ ~ ~ ~ ~ /
+     |__|         `---------'
+     |  |           |   |
+    /|  |\       __/     \__
+   (_|  |_)     (   garden  )
+"""
+
+
+def send_reboot_email(recipients, freezer_name, temp_c, alarm_high, alarm_low):
+    """Send a reboot notification email to all recipients."""
+    subject = '#FreezerAlarm REBOOT'
+    body = (
+        'The Freezer Alarm system has just rebooted!\n\n'
+        'The Raspberry Pi monitoring {freezer} has restarted and is now\n'
+        'actively monitoring the freezer temperature.\n\n'
+        'Current status:\n'
+        '  - Temperature: {temp:.1f} C\n'
+        '  - High alarm threshold: {high} C\n'
+        '  - Low alarm threshold: {low} C\n\n'
+        'The system checks the temperature every {interval} seconds and will\n'
+        'send an alert if the temperature goes outside the safe range.\n\n'
+        'No action is needed -- this is just a heads-up that the system\n'
+        'restarted (e.g. after a power outage or maintenance).\n\n'
+        '{art}'
+    ).format(
+        freezer=freezer_name, temp=temp_c,
+        high=alarm_high, low=alarm_low,
+        interval=POLL_INTERVAL, art=PLANT_AND_CATERPILLAR_ART,
+    )
+    send_email(subject, body, recipients)
+
+
+def send_monthly_update(recipients, freezer_name, temp_c, alarm_high, alarm_low):
+    """Send a monthly reminder email to all recipients."""
+    subject = '#FreezerAlarm Monthly Update'
+    body = (
+        'Monthly reminder: the Freezer Alarm is alive and well!\n\n'
+        'This is your friendly monthly update from the Raspberry Pi\n'
+        'monitoring {freezer}.\n\n'
+        'Current status:\n'
+        '  - Temperature: {temp:.1f} C\n'
+        '  - High alarm threshold: {high} C\n'
+        '  - Low alarm threshold: {low} C\n\n'
+        'NOTE: The temperature sensor is mounted on the wall of the\n'
+        'freezer, not in the center. This means the reported temperature\n'
+        'may be slightly warmer than the actual temperature at the center\n'
+        'of the freezer. Keep this in mind when evaluating readings.\n\n'
+        'The system checks the temperature every {interval} seconds,\n'
+        '24 hours a day, 7 days a week. If anything goes wrong, you\n'
+        'will receive an alert immediately.\n\n'
+        '{art}'
+    ).format(
+        freezer=freezer_name, temp=temp_c,
+        high=alarm_high, low=alarm_low,
+        interval=POLL_INTERVAL, art=PLANT_AND_CATERPILLAR_ART,
+    )
+    send_email(subject, body, recipients)
 
 
 def send_sensor_failure_alert(error_detail):
@@ -188,10 +261,20 @@ def main():
     recipients = config['recipients']
     temperaturelist, timelist = load_history()
 
+    # Send reboot notification with a live temperature reading
+    try:
+        initial_temp = read_temp(device_file)
+        send_reboot_email(recipients, freezer_name, initial_temp, alarm_high, alarm_low)
+        logging.info('Reboot notification sent (temp: %.1f C)', initial_temp)
+    except SensorError as e:
+        logging.error('Could not read temp for reboot email: %s', e)
+        send_reboot_email(recipients, freezer_name, float('nan'), alarm_high, alarm_low)
+
     # State tracking
     last_alarm_time = 0
     last_sensor_alert_time = 0
     last_digest_date = None
+    last_monthly_date = None
     consecutive_failures = 0
 
     while True:
@@ -226,6 +309,13 @@ def main():
                     freezer_name, temp_c)
                 send_email(subject, body, [recipients[0]])
                 last_digest_date = today
+
+            # Monthly update on the 1st at MONTHLY_HOUR
+            if (today.day == MONTHLY_DAY and current_hour == MONTHLY_HOUR
+                    and last_monthly_date != today):
+                send_monthly_update(recipients, freezer_name, temp_c,
+                                    alarm_high, alarm_low)
+                last_monthly_date = today
 
             # Update history
             del temperaturelist[0]
